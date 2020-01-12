@@ -5,17 +5,17 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
-import kotlin.math.max
-import kotlin.math.min
+import ru.skillbranch.skillarticles.ui.custom.ArticleSubmenu
 
-class SubmenuBehavior <V : View> @JvmOverloads constructor(
+class SubmenuBehavior @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : CoordinatorLayout.Behavior<V>(context, attrs) {
+) : CoordinatorLayout.Behavior<ArticleSubmenu>(context, attrs) {
+    var isHidden = false
 
     override fun onStartNestedScroll(
         coordinatorLayout: CoordinatorLayout,
-        child: V,
+        child: ArticleSubmenu,
         directTargetChild: View,
         target: View,
         axes: Int,
@@ -25,7 +25,7 @@ class SubmenuBehavior <V : View> @JvmOverloads constructor(
 
     override fun onNestedPreScroll(
         coordinatorLayout: CoordinatorLayout,
-        child: V,
+        child: ArticleSubmenu,
         target: View,
         dx: Int,
         dy: Int,
@@ -33,6 +33,13 @@ class SubmenuBehavior <V : View> @JvmOverloads constructor(
         type: Int
     ) {
         super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type)
-        child.translationY = max(0f, min(child.height.toFloat(), child.translationY + dy))
+        if (dy > 0 && child.isOpen && !isHidden) {
+            child.hide()
+            isHidden = true
+        }
+        if (dy < 0 && isHidden) {
+            child.show()
+            isHidden = false
+        }
     }
 }

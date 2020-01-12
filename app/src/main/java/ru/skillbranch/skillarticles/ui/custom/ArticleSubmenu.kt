@@ -39,7 +39,7 @@ class ArticleSubmenu @JvmOverloads constructor(
     fun close() {
         if (!isOpen || !isAttachedToWindow) return
         isOpen = false
-        animatedHide()
+        animatedHide(View.GONE)
     }
 
     private fun animatedShow() {
@@ -57,7 +57,7 @@ class ArticleSubmenu @JvmOverloads constructor(
         anim.start()
     }
 
-    private fun animatedHide() {
+    private fun animatedHide(visibilityNeeded: Int) {
         val endRadius = hypot(centerX, centerY).toInt()
         val anim = ViewAnimationUtils.createCircularReveal(
             this,
@@ -67,9 +67,17 @@ class ArticleSubmenu @JvmOverloads constructor(
             0f
         )
         anim.doOnEnd {
-            visibility = View.GONE
+            visibility = visibilityNeeded
         }
         anim.start()
+    }
+
+    fun show() {
+        animatedShow()
+    }
+
+    fun hide() {
+        animatedHide(View.INVISIBLE)
     }
 
     override fun onSaveInstanceState(): Parcelable? {
