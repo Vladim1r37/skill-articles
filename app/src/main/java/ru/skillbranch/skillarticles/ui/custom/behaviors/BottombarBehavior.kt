@@ -40,21 +40,4 @@ class BottombarBehavior @JvmOverloads constructor(
         if (offset != child.translationY) child.translationY = offset
         super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type)
     }
-
-//    override fun layoutDependsOn(parent: CoordinatorLayout, child: Bottombar, dependency: View): Boolean {
-//        if (dependency is Snackbar.SnackbarLayout)
-//            updateSnackbar(child, dependency)
-//        return super.layoutDependsOn(parent, child, dependency)
-//    }
-//
-//    private fun updateSnackbar(child: Bottombar, snackbarLayout: Snackbar.SnackbarLayout) {
-//        if (snackbarLayout.layoutParams is CoordinatorLayout.LayoutParams) {
-//            val params = snackbarLayout.layoutParams as CoordinatorLayout.LayoutParams
-//
-//            params.anchorId = child.id
-//            params.anchorGravity = Gravity.TOP
-//            params.gravity = Gravity.TOP
-//            snackbarLayout.layoutParams = params
-//        }
-//    }
 }
