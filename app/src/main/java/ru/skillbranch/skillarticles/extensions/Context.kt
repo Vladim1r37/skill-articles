@@ -4,7 +4,9 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.util.LogPrinter
 import android.util.TypedValue
+import androidx.annotation.AttrRes
 
 fun Context.dpToPx(dp: Int): Float {
     return TypedValue.applyDimension(
@@ -21,6 +23,15 @@ fun Context.dpToIntPx(dp: Int): Int {
         dp.toFloat(),
         this.resources.displayMetrics
     ).toInt()
+}
+
+fun Context.attrValue(res: Int): Int {
+    var result: Int? = null
+    val tv = TypedValue()
+    this.theme.resolveAttribute(res, tv, true)
+    result = tv.data
+    return result
+
 }
 
 val Context.isNetworkAvailable: Boolean

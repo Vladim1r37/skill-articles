@@ -10,12 +10,14 @@ import ru.skillbranch.skillarticles.extensions.data.toAppSettings
 import ru.skillbranch.skillarticles.extensions.data.toArticlePersonalInfo
 import ru.skillbranch.skillarticles.extensions.format
 import ru.skillbranch.skillarticles.extensions.indexesOf
+import ru.skillbranch.skillarticles.markdown.MarkdownParser
 import ru.skillbranch.skillarticles.viewmodels.base.BaseViewModel
 import ru.skillbranch.skillarticles.viewmodels.base.IViewModelState
 import ru.skillbranch.skillarticles.viewmodels.base.Notify
 
 class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleState>(ArticleState()) {
     private val repository = ArticleRepository
+    private var clearContent: String? = null
 
 
     init {
@@ -55,7 +57,7 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
         }
     }
 
-    private fun getArticleContent(): LiveData<List<Any>?> {
+    private fun getArticleContent(): LiveData<String?> {
         return repository.loadArticleContent(articleId)
     }
 
@@ -124,9 +126,12 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
 
     fun handleSearchQuery(query: String?) {
         query ?: return
-        val result = (currentState.content.firstOrNull() as? String).indexesOf(query)
+
+        if (clearContent == null) clearContent = MarkdownParser.clear(currentState.content)
+        val result = clearContent
+            .indexesOf(query)
             .map { it to it + query.length }
-        updateStateInBackground { it.copy(searchQuery = query, searchResults = result) }
+        updateStateInBackground { it.copy(searchQuery = query, searchResults = result, searchPosition = 0) }
     }
 
     fun handleUpResult() {
@@ -159,7 +164,7 @@ data class ArticleState(
     val date: String? = null,
     val author: Any? = null,
     val poster: String? = null,
-    val content: List<Any> = emptyList(),
+    val content: String? = null,
     val reviews: List<Any> = emptyList()
 ) : IViewModelState {
     override fun save(outState: Bundle) {
