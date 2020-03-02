@@ -305,6 +305,10 @@ sealed class Element() {
     data class BlockCode(
         override val text: CharSequence,
         override val elements: List<Element> = emptyList()
-    ) : Element()
+    ) : Element() {
+        enum class Type {
+            SINGLE, START, MIDDLE, END
+        }
+    }
 
 }
