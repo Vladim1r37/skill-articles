@@ -6,7 +6,7 @@ object MarkdownParser {
 
     private val LINE_SEPARATOR = System.getProperty("line.separator") ?: "\n"
 
-    private const val UNORDERED_LIST_ITEM_GROUP = "(^[*+-] .+$)"
+    private const val UNORDERED_GROUP = "(^[*+-] .+$)"
     private const val HEADER_GROUP = "(^#{1,6} .+?$)"
     private const val QUOTE_GROUP = "(^> .+?$)"
     private const val ITALIC_GROUP = "((?<!\\*)\\*[^*].*?[^*]?\\*(?!\\*)|(?<!_)_[^_].*?[^_]?_(?!_))"
@@ -15,9 +15,12 @@ object MarkdownParser {
     private const val RULE_GROUP = "(^[-_*]{3}$)"
     private const val INLINE_GROUP = "((?<!`)`[^`\\s].*?[^`\\s]?`(?!`))"
     private const val LINK_GROUP = "(\\[[^\\[\\]]*?]\\(.+?\\)|^\\[*?]\\(.*?\\))"
+    private const val ORDERED_GROUP = "(^\\d+\\. .+?$)"
+    private const val BLOCK_CODE_GROUP = "(^```[\\s\\S]+?```$)"
 
-    private const val MARKDOWN_GROUPS = "$UNORDERED_LIST_ITEM_GROUP|$HEADER_GROUP|$QUOTE_GROUP" +
-            "|$ITALIC_GROUP|$BOLD_GROUP|$STRIKE_GROUP|$RULE_GROUP|$INLINE_GROUP|$LINK_GROUP"
+    private const val MARKDOWN_GROUPS = "$UNORDERED_GROUP|$HEADER_GROUP|$QUOTE_GROUP" +
+            "|$ITALIC_GROUP|$BOLD_GROUP|$STRIKE_GROUP|$RULE_GROUP|$INLINE_GROUP|$LINK_GROUP|" +
+            "$ORDERED_GROUP|$BLOCK_CODE_GROUP"
 
     private val elementsPattern by lazy { Pattern.compile(MARKDOWN_GROUPS, Pattern.MULTILINE) }
 
@@ -30,105 +33,21 @@ object MarkdownParser {
     fun clear(string: String?): String? {
         string ?: return null
 
+        val elements = findElements(string)
+
         val result = StringBuilder()
-        val matcher = elementsPattern.matcher(string)
-        var lastStartIndex = 0
 
-        loop@ while (matcher.find(lastStartIndex)) {
-            val startIndex = matcher.start()
-            val endIndex = matcher.end()
+        getText(elements, result)
 
-            if (lastStartIndex < startIndex) {
-                result.append(string.subSequence(lastStartIndex, startIndex))
-            }
-
-            var text: CharSequence
-
-            val groups = 1..9
-            var group = -1
-            for (gr in groups) {
-                if (matcher.group(gr) != null) {
-                    group = gr
-                    break
-                }
-            }
-
-            when(group) {
-                -1 -> break@loop
-
-                1 -> {
-                    text = string.subSequence(startIndex.plus(2), endIndex)
-                    val cleanText = clear(text.toString())
-                    result.append(cleanText)
-                    lastStartIndex = endIndex
-                }
-
-                2 -> {
-                    val reg = "^#{1,6}".toRegex().find(string.subSequence(startIndex, endIndex))
-                    val level = reg!!.value.length
-
-                    text = string.subSequence(startIndex.plus(level.inc()), endIndex)
-
-                    result.append(text)
-                    lastStartIndex = endIndex
-                }
-
-                3 -> {
-                    text = string.subSequence(startIndex.plus(2), endIndex)
-                    val cleanText = clear(text.toString())
-                    result.append(cleanText)
-                    lastStartIndex = endIndex
-                }
-
-                4 -> {
-                    text = string.subSequence(startIndex.inc(), endIndex.dec())
-                    val cleanText = clear(text.toString())
-                    result.append(cleanText)
-                    lastStartIndex = endIndex
-                }
-
-                5 -> {
-                    text = string.subSequence(startIndex.plus(2), endIndex.plus(-2))
-                    val cleanText = clear(text.toString())
-                    result.append(cleanText)
-                    lastStartIndex = endIndex
-                }
-
-                6 -> {
-                    text = string.subSequence(startIndex.plus(2), endIndex.plus(-2))
-                    val cleanText = clear(text.toString())
-                    result.append(cleanText)
-                    lastStartIndex = endIndex
-                }
-
-                7 -> {
-                    result.append(" ")
-                    lastStartIndex = endIndex
-                }
-
-                8 -> {
-                    text = string.subSequence(startIndex.inc(), endIndex.dec())
-                    result.append(text)
-                    lastStartIndex = endIndex
-                }
-
-                9 -> {
-                    text = string.subSequence(startIndex, endIndex)
-                    val (title: String) = "\\[(.*)]".toRegex().find(text)!!.destructured
-                    result.append(title)
-                    lastStartIndex = endIndex
-                }
-
-
-            }
-        }
-
-        if (lastStartIndex < string.length) {
-            val text = string.subSequence(lastStartIndex, string.length)
-            result.append(text)
-        }
 
         return result.toString()
+    }
+
+    private fun getText(elements: List<Element>, acc: StringBuilder): Unit {
+        elements.forEach {
+            if (it.elements.isNotEmpty()) getText(it.elements, acc)
+            else acc.append(it.text)
+        }
     }
 
     private fun findElements(string: CharSequence): List<Element> {
@@ -146,7 +65,7 @@ object MarkdownParser {
 
             var text: CharSequence
 
-            val groups = 1..9
+            val groups = 1..11
             var group = -1
             for (gr in groups) {
                 if (matcher.group(gr) != null) {
@@ -155,7 +74,7 @@ object MarkdownParser {
                 }
             }
 
-            when(group) {
+            when (group) {
                 -1 -> break@loop
 
                 1 -> {
@@ -231,7 +150,39 @@ object MarkdownParser {
                     lastStartIndex = endIndex
                 }
 
+                10 -> {
+                    val order = "^\\d+".toRegex().find(string.subSequence(startIndex, endIndex))!!.value
+                    text = string.subSequence(startIndex.plus(order.length.plus(2)), endIndex)
+                    val subs = findElements(text)
+                    val element = Element.OrderedListItem(order, text, subs)
+                    parents.add(element)
+                    lastStartIndex = endIndex
+                }
 
+                11 -> {
+                    text = string.subSequence(startIndex.plus(3), endIndex.plus(-3))
+                    var subs = findElements(text)
+                    val block = text.toString().split("\n")
+                    if (block.size == 1) {
+                        val element = Element.BlockCode(Element.BlockCode.Type.SINGLE, block[0], subs)
+                        parents.add(element)
+                    } else for (i in block.indices) {
+                        if (i == 0) {
+                            subs = findElements(block[i] + "\n")
+                            val element = Element.BlockCode(Element.BlockCode.Type.START, block[i] + "\n", subs)
+                            parents.add(element)
+                        } else if (i < block.size.dec()) {
+                            subs = findElements(block[i] + "\n")
+                            val element = Element.BlockCode(Element.BlockCode.Type.MIDDLE, block[i] + "\n", subs)
+                            parents.add(element)
+                        } else {
+                            subs = findElements(block[i])
+                            val element = Element.BlockCode(Element.BlockCode.Type.END, block[i], subs)
+                            parents.add(element)
+                        }
+                    }
+                    lastStartIndex = endIndex
+                }
             }
         }
 
@@ -302,7 +253,14 @@ sealed class Element() {
         override val elements: List<Element> = emptyList()
     ) : Element()
 
+    data class OrderedListItem(
+        val order: String,
+        override val text: CharSequence,
+        override val elements: List<Element> = emptyList()
+    ) : Element()
+
     data class BlockCode(
+        val type: Type,
         override val text: CharSequence,
         override val elements: List<Element> = emptyList()
     ) : Element() {
@@ -310,5 +268,6 @@ sealed class Element() {
             SINGLE, START, MIDDLE, END
         }
     }
+
 
 }
