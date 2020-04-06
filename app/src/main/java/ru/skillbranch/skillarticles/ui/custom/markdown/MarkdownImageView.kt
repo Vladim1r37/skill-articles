@@ -44,9 +44,12 @@ class MarkdownImageView private constructor(
     lateinit var imageUrl: String
     lateinit var imageTitle: CharSequence
 
-    private val iv_image: ImageView
-    private val tv_title: MarkdownTextView
-    private var tv_alt: TextView? = null
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    val iv_image: ImageView
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    val tv_title: MarkdownTextView
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    var tv_alt: TextView? = null
 
     @Px
     private val titleTopMargin: Int = context.dpToIntPx(8)
