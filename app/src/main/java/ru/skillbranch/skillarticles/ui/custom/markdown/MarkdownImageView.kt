@@ -3,6 +3,8 @@ package ru.skillbranch.skillarticles.ui.custom.markdown
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
+import android.os.Parcel
+import android.os.Parcelable
 import android.text.Spannable
 import android.view.*
 import android.widget.ImageView
@@ -32,11 +34,11 @@ class MarkdownImageView private constructor(
     fontSize: Float
 ) : ViewGroup(context, null, 0), IMarkdownView {
     override var fontSize: Float = fontSize
-    set(value) {
-        tv_title.textSize = value * 0.75f
-        tv_alt?.textSize = value
-        field = value
-    }
+        set(value) {
+            tv_title.textSize = value * 0.75f
+            tv_alt?.textSize = value
+            field = value
+        }
 
     override val spannableContent: Spannable
         get() = tv_title.text as Spannable
@@ -46,23 +48,31 @@ class MarkdownImageView private constructor(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     val iv_image: ImageView
+
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     val tv_title: MarkdownTextView
+
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     var tv_alt: TextView? = null
 
     @Px
     private val titleTopMargin: Int = context.dpToIntPx(8)
+
     @Px
     private val titlePadding: Int = context.dpToIntPx(56)
+
     @Px
     private val cornerRadius: Float = context.dpToPx(4)
+
     @ColorInt
     private val colorSurface: Int = context.attrValue(R.attr.colorSurface)
+
     @ColorInt
     private val colorOnSurface: Int = context.attrValue(R.attr.colorOnSurface)
+
     @ColorInt
     private val colorOnBackground: Int = context.attrValue(R.attr.colorOnBackground)
+
     @ColorInt
     private val lineColor: Int = context.getColor(R.color.color_divider)
 
@@ -71,6 +81,9 @@ class MarkdownImageView private constructor(
         color = lineColor
         strokeWidth = 0f
     }
+
+    private var isOpen: Boolean = false
+    private var aspectRatio: Float = 0f
 
 
     init {
@@ -99,7 +112,7 @@ class MarkdownImageView private constructor(
         addView(tv_title)
     }
 
-        constructor(
+    constructor(
         context: Context,
         fontSize: Float,
         url: String,
@@ -133,8 +146,14 @@ class MarkdownImageView private constructor(
         addView(tv_alt)
 
         iv_image.setOnClickListener {
-            if (tv_alt?.isVisible == true) animateHideAlt()
-            else animateShowAlt()
+            if (tv_alt?.isVisible == true) {
+                animateHideAlt()
+                isOpen = false
+            }
+            else {
+                animateShowAlt()
+                isOpen = true
+            }
         }
 
     }
@@ -234,6 +253,48 @@ class MarkdownImageView private constructor(
         va.doOnEnd { tv_alt?.isVisible = false }
         va.start()
     }
+
+    override fun onSaveInstanceState(): Parcelable? {
+        val savedState = SavedState(super.onSaveInstanceState())
+        savedState.ssIsOpen = isOpen
+        savedState.ssAspectRatio = (iv_image.width.toFloat() / iv_image.height)
+        return savedState
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable) {
+        super.onRestoreInstanceState(state)
+        if (state is SavedState) {
+            isOpen = state.ssIsOpen
+            aspectRatio = state.ssAspectRatio
+            tv_alt?.isVisible = isOpen
+        }
+    }
+
+    private class SavedState : BaseSavedState, Parcelable {
+        var ssIsOpen: Boolean = false
+        var ssAspectRatio: Float = 0f
+
+        constructor(superState: Parcelable?) : super(superState)
+
+        constructor(src: Parcel) : super(src) {
+            ssIsOpen = src.readInt() == 1
+            ssAspectRatio = src.readFloat()
+        }
+
+        override fun writeToParcel(dst: Parcel, flags: Int) {
+            super.writeToParcel(dst, flags)
+            dst.writeInt(if (ssIsOpen) 1 else 0)
+            dst.writeFloat(ssAspectRatio)
+        }
+
+        override fun describeContents(): Int = 0
+
+        companion object CREATOR : Parcelable.Creator<SavedState> {
+            override fun createFromParcel(parcel: Parcel) = SavedState(parcel)
+
+            override fun newArray(size: Int): Array<SavedState?> = arrayOfNulls(size)
+        }
+    }
 }
 
 class AspectRatioResizeTransform : BitmapTransformation() {
@@ -245,10 +306,11 @@ class AspectRatioResizeTransform : BitmapTransformation() {
         messageDigest.update(ID_BYTES)
     }
 
-    override fun transform(pool: BitmapPool,
-                           toTransform: Bitmap,
-                           outWidth: Int,
-                           outHeight: Int
+    override fun transform(
+        pool: BitmapPool,
+        toTransform: Bitmap,
+        outWidth: Int,
+        outHeight: Int
     ): Bitmap {
         val originWidth = toTransform.width
         val originHeight = toTransform.height

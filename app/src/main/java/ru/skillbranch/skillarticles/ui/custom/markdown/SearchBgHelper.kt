@@ -166,7 +166,7 @@ abstract class SearchBgRender(
     }
 
     fun getLineBottom(layout: Layout, line: Int): Int {
-        return layout.  getLineBottomWithoutPadding(line)
+        return layout.getLineBottomWithoutPadding(line)
     }
 }
 
