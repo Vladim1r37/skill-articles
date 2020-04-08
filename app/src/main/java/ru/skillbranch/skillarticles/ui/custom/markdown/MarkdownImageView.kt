@@ -82,8 +82,8 @@ class MarkdownImageView private constructor(
         strokeWidth = 0f
     }
 
-    private var isOpen: Boolean = false
-    private var aspectRatio: Float = 0f
+    private var isOpen = false
+    private var aspectRatio = 0f
 
 
     init {
@@ -146,14 +146,9 @@ class MarkdownImageView private constructor(
         addView(tv_alt)
 
         iv_image.setOnClickListener {
-            if (tv_alt?.isVisible == true) {
-                animateHideAlt()
-                isOpen = false
-            }
-            else {
-                animateShowAlt()
-                isOpen = true
-            }
+            if (tv_alt?.isVisible == true) animateHideAlt()
+            else animateShowAlt()
+            isOpen = !isOpen
         }
 
     }
@@ -165,7 +160,11 @@ class MarkdownImageView private constructor(
 
         val ms = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
 
-        iv_image.measure(ms, heightMeasureSpec)
+        if (aspectRatio != 0f) {
+            val hms = MeasureSpec.makeMeasureSpec((width / aspectRatio).toInt(), MeasureSpec.EXACTLY)
+            iv_image.measure(ms, hms)
+        } else iv_image.measure(ms, heightMeasureSpec)
+
         tv_title.measure(ms, heightMeasureSpec)
         tv_alt?.measure(ms, heightMeasureSpec)
 
