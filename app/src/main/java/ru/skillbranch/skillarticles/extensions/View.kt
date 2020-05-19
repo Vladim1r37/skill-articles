@@ -1,11 +1,11 @@
 package ru.skillbranch.skillarticles.extensions
 
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.marginBottom
-import androidx.core.view.marginLeft
-import androidx.core.view.marginRight
-import androidx.core.view.marginTop
+import androidx.core.view.*
+import androidx.navigation.NavDestination
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 fun View.setMarginOptionally(left: Int = marginLeft, top: Int = marginTop,
                              right: Int = marginRight,  bottom: Int = marginBottom) {
@@ -20,3 +20,19 @@ fun View.setPaddingOptionally(left: Int = paddingLeft, top: Int = paddingTop,
                              right: Int = paddingRight,  bottom: Int = paddingBottom) {
     this.setPadding(left, top, right, bottom)
 }
+
+fun View.selectDestination(destination: NavDestination) {
+    selectItem(destination.id)
+}
+
+fun View.selectItem(itemId: Int?) {
+    itemId ?: return
+    val menu = (this as BottomNavigationView).menu
+    for (item in menu.iterator()) {
+        if (item.itemId == itemId) {
+            item.isChecked = true
+            break
+        }
+    }
+}
+

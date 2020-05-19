@@ -4,16 +4,24 @@ import android.os.Bundle
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.*
+import androidx.navigation.NavOptions
+import androidx.navigation.Navigator
 
-abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
+abstract class BaseViewModel<T : IViewModelState>(
+    private val handleState: SavedStateHandle,
+    initState: T
+) : ViewModel() {
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     val notifications = MutableLiveData<Event<Notify>>()
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    val navigation = MutableLiveData<Event<NavigationCommand>>()
 
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     val state: MediatorLiveData<T> = MediatorLiveData<T>().apply {
         value = initState
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     val currentState
         get() = state.value!!
 
@@ -33,6 +41,10 @@ abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
         notifications.value = Event(content)
     }
 
+    open fun navigate(command: NavigationCommand) {
+        navigation.value = Event(command)
+    }
+
     fun observeState(owner: LifecycleOwner, onChanged: (newState: T) -> Unit) {
         state.observe(owner, Observer { onChanged(it!!) })
     }
@@ -40,6 +52,11 @@ abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
     fun observeNotifications(owner: LifecycleOwner, onNotify: (notification: Notify) -> Unit) {
         notifications.observe(owner,
             EventObserver { onNotify(it) })
+    }
+
+    fun observeNavigation(owner: LifecycleOwner, onNavigate: (command: NavigationCommand) -> Unit) {
+        navigation.observe(owner,
+            EventObserver { onNavigate(it) })
     }
 
     protected fun <S> subscribeOnDataSource(
@@ -51,12 +68,13 @@ abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
         }
     }
 
-    fun saveState(outState: Bundle) {
-        currentState.save(outState)
+    fun saveState() {
+        currentState.save(handleState)
     }
 
-    fun restoreState(savedState: Bundle) {
-        state.value = currentState.restore(savedState) as T
+    @Suppress("UNCHECKED_CAST")
+    fun restoreState() {
+        state.value = currentState.restore(handleState) as   T
     }
 }
 
@@ -102,4 +120,21 @@ sealed class Notify() {
         val errLabel: String?,
         val errHandler: (() -> Unit)?
     ) : Notify()
+}
+
+sealed class NavigationCommand() {
+    data class To(
+        val destination: Int,
+        val args: Bundle? = null,
+        val options: NavOptions? = null,
+        val extras: Navigator.Extras? = null
+    ) : NavigationCommand()
+
+    data class StartLogin(
+        val privateDestination: Int? = null
+    ) : NavigationCommand()
+
+    data class FinishLogin(
+        val privateDestination: Int? = null
+    ) : NavigationCommand()
 }

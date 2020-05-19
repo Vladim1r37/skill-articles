@@ -6,7 +6,6 @@ import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.SparseArray
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.util.isEmpty
@@ -25,7 +24,7 @@ class MarkdownContentView @JvmOverloads constructor(
 ) : ViewGroup(context, attrs, defStyleAttr) {
     private lateinit var elements: List<MarkdownElement>
     private var layoutManager: LayoutManager = LayoutManager()
-    
+
 
     var textSize by Delegates.observable(14f) {_, old, value ->
         if (value == old) return@observable
@@ -186,8 +185,8 @@ class MarkdownContentView @JvmOverloads constructor(
         super.onRestoreInstanceState(state)
         if (state is SavedState) layoutManager = state.layout
 
-        children.filter { it !is MarkdownTextView }
-            .forEachIndexed { index, it -> layoutManager.attachToParent(it, index) }
+//        children.filter { it !is MarkdownTextView }
+//            .forEachIndexed { index, it -> layoutManager.attachToParent(it, index) }
     }
 
     override fun dispatchSaveInstanceState(container: SparseArray<Parcelable>?) {

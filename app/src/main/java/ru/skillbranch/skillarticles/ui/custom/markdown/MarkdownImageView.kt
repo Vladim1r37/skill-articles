@@ -33,6 +33,7 @@ class MarkdownImageView private constructor(
     context: Context,
     fontSize: Float
 ) : ViewGroup(context, null, 0), IMarkdownView {
+
     override var fontSize: Float = fontSize
         set(value) {
             tv_title.textSize = value * 0.75f
@@ -87,7 +88,7 @@ class MarkdownImageView private constructor(
 
 
     init {
-        layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         iv_image = ImageView(context).apply {
             outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
@@ -102,13 +103,14 @@ class MarkdownImageView private constructor(
         addView(iv_image)
 
         tv_title = MarkdownTextView(context, fontSize * 0.75f).apply {
-            setText("title", TextView.BufferType.SPANNABLE)
+//            setText("title", TextView.BufferType.SPANNABLE)
             setTextColor(colorOnBackground)
             gravity = Gravity.CENTER
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
             setPaddingOptionally(left = titlePadding, right = titlePadding)
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+//            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
+
         addView(tv_title)
     }
 
@@ -124,12 +126,6 @@ class MarkdownImageView private constructor(
         imageTitle = title
 
         tv_title.setText(title, TextView.BufferType.SPANNABLE)
-
-        Glide
-            .with(context)
-            .load(url)
-            .transform(AspectRatioResizeTransform())
-            .into(iv_image)
 
         if (alt != null) {
             tv_alt = TextView(context).apply {
@@ -151,6 +147,15 @@ class MarkdownImageView private constructor(
             isOpen = !isOpen
         }
 
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        Glide
+            .with(context)
+            .load(imageUrl)
+            .transform(AspectRatioResizeTransform())
+            .into(iv_image)
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)

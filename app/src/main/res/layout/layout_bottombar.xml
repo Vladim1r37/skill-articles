@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<merge xmlns:android="http://schemas.android.com/apk/res/android"
-       xmlns:app="http://schemas.android.com/apk/res-auto"
-       xmlns:tools="http://schemas.android.com/tools"
-       tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
+<ru.skillbranch.skillarticles.ui.custom.Bottombar
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/bottombar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:layout_gravity="bottom"
+        android:theme="@style/ArticleBarsTheme"
+        android:elevation="4dp"
+        app:layout_insetEdge="bottom"
+        app:layout_behavior=".ui.custom.behaviors.BottombarBehavior">
 
     <ru.skillbranch.skillarticles.ui.custom.CheckableImageView
             android:id="@+id/btn_like"
@@ -84,17 +93,17 @@
                 android:layout_weight="1"/>
 
         <ImageView
-                style="@style/BottombarSearchIcon"
                 android:id="@+id/btn_result_down"
+                style="@style/BottombarSearchIcon"
                 android:src="@drawable/ic_keyboard_arrow_down_black_24dp"
                 android:tint="@android:color/white"/>
         <ImageView
-                style="@style/BottombarSearchIcon"
                 android:id="@+id/btn_result_up"
+                style="@style/BottombarSearchIcon"
                 android:src="@drawable/ic_keyboard_arrow_up_black_24dp"
                 android:tint="@android:color/white"/>
 
     </LinearLayout>
 
 
-</merge>
+</ru.skillbranch.skillarticles.ui.custom.Bottombar>

@@ -1,8 +1,7 @@
-package ru.skillbranch.skillarticles.viewmodels
+package ru.skillbranch.skillarticles.viewmodels.article
 
-import android.os.Bundle
-import androidx.core.os.bundleOf
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.SavedStateHandle
 import ru.skillbranch.skillarticles.data.ArticleData
 import ru.skillbranch.skillarticles.data.ArticlePersonalInfo
 import ru.skillbranch.skillarticles.data.repositories.ArticleRepository
@@ -11,13 +10,19 @@ import ru.skillbranch.skillarticles.extensions.data.toAppSettings
 import ru.skillbranch.skillarticles.extensions.data.toArticlePersonalInfo
 import ru.skillbranch.skillarticles.extensions.format
 import ru.skillbranch.skillarticles.extensions.indexesOf
-import ru.skillbranch.skillarticles.data.repositories.MarkdownParser
 import ru.skillbranch.skillarticles.data.repositories.clearContent
 import ru.skillbranch.skillarticles.viewmodels.base.BaseViewModel
 import ru.skillbranch.skillarticles.viewmodels.base.IViewModelState
+import ru.skillbranch.skillarticles.viewmodels.base.NavigationCommand
 import ru.skillbranch.skillarticles.viewmodels.base.Notify
 
-class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleState>(ArticleState()) {
+class ArticleViewModel(
+    handle: SavedStateHandle,
+    private val articleId: String
+) : BaseViewModel<ArticleState>(
+    handle,
+    ArticleState()
+), IArticleViewModel {
     private val repository = ArticleRepository
     private var clearContent: String? = null
 
@@ -57,38 +62,43 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
                 isBigText = settings.isBigText
             )
         }
+
+        subscribeOnDataSource(repository.isAuth()) {auth, state ->
+            state.copy(isAuth = auth)
+        }
     }
 
-    private fun getArticleContent(): LiveData<List<MarkdownElement>?> {
+    override fun getArticleContent(): LiveData<List<MarkdownElement>?> {
         return repository.loadArticleContent(articleId)
     }
 
-    private fun getArticleData(): LiveData<ArticleData?> {
+    override fun getArticleData(): LiveData<ArticleData?> {
         return repository.getArticle(articleId)
     }
 
-    private fun getArticlePersonalInfo(): LiveData<ArticlePersonalInfo?> {
+    override fun getArticlePersonalInfo(): LiveData<ArticlePersonalInfo?> {
         return repository.loadArticlePersonalInfo(articleId)
     }
 
-    fun handleToggleMenu() {
+    override fun handleToggleMenu() {
         updateState { it.copy(isShowMenu = !it.isShowMenu) }
     }
 
-    fun handleUpText() {
+    override fun handleUpText() {
         repository.updateSettings(currentState.toAppSettings().copy(isBigText = true))
     }
 
-    fun handleDownText() {
+    override fun handleDownText() {
         repository.updateSettings(currentState.toAppSettings().copy(isBigText = false))
     }
 
-    fun handleNightMode() {
+    override fun handleNightMode() {
         val settings = currentState.toAppSettings()
         repository.updateSettings(settings.copy(isDarkMode = !settings.isDarkMode))
     }
 
-    fun handleLike() {
+    override fun handleLike() {
+        val isLiked = currentState.isLike
         val toggleLike = {
             val info = currentState.toArticlePersonalInfo()
             repository.updateArticlePersonalInfo(info.copy(isLike = !info.isLike))
@@ -96,7 +106,7 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
 
         toggleLike()
 
-        val msg = if (currentState.isLike) Notify.TextMessage("Mark is liked")
+        val msg = if (!isLiked) Notify.TextMessage("Mark is liked")
         else {
             Notify.ActionMessage(
                 "Don't like it anymore",
@@ -108,7 +118,7 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
         notify(msg)
     }
 
-    fun handleBookmark() {
+    override fun handleBookmark() {
         val info = currentState.toArticlePersonalInfo()
         repository.updateArticlePersonalInfo(info.copy(isBookmark = !info.isBookmark))
 
@@ -117,16 +127,16 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
         notify(msg)
     }
 
-    fun handleShare() {
+    override fun handleShare() {
         val msg = "Share is not implemented"
         notify(Notify.ErrorMessage(msg, "OK", null))
     }
 
-    fun handleSearchMode(isSearch: Boolean) {
+    override fun handleSearchMode(isSearch: Boolean) {
         updateStateInBackground { it.copy(isSearch = isSearch, isShowMenu = false, searchPosition = 0) }
     }
 
-    fun handleSearchQuery(query: String?) {
+    override fun handleSearchQuery(query: String?) {
         query ?: return
 
         if (clearContent == null && currentState.content.isNotEmpty()) clearContent = currentState.content.clearContent()
@@ -146,6 +156,11 @@ class ArticleViewModel(private val articleId: String) : BaseViewModel<ArticleSta
 
     fun handleCopyCode() {
         notify(Notify.TextMessage("Code is copied to clipboard"))
+    }
+
+    fun handleSendComment() {
+        if (!currentState.isAuth) navigate(NavigationCommand.StartLogin())
+        //TODO send comment
     }
 
 }
@@ -173,23 +188,19 @@ data class ArticleState(
     val content: List<MarkdownElement> = emptyList(),
     val reviews: List<Any> = emptyList()
 ) : IViewModelState {
-    override fun save(outState: Bundle) {
-        outState.putAll(
-            bundleOf(
-                "isSearch" to isSearch,
-                "searchQuery" to searchQuery,
-                "searchResults" to searchResults,
-                "searchPosition" to searchPosition
-            )
-        )
+    override fun save(outState: SavedStateHandle) {
+                outState.set("isSearch", isSearch)
+                outState.set("searchQuery", searchQuery)
+                outState.set("searchResults", searchResults)
+                outState.set("searchPosition", searchPosition)
     }
 
-    override fun restore(savedState: Bundle): ArticleState {
+    override fun restore(savedState: SavedStateHandle): ArticleState {
         return copy(
-            isSearch = savedState["isSearch"] as Boolean,
-            searchQuery = savedState["searchQuery"] as? String,
-            searchResults = savedState["searchResults"] as List<Pair<Int, Int>>,
-            searchPosition = savedState["searchPosition"] as Int
+            isSearch = savedState["isSearch"] ?: false,
+            searchQuery = savedState["searchQuery"],
+            searchResults = savedState["searchResults"] ?: emptyList(),
+            searchPosition = savedState["searchPosition"] ?: 0
         )
     }
 }
